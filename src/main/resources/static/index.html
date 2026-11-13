@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SnipLink | Production URL Shortener & Analytics</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- Header Navbar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="brand">
+                <i class="fa-solid fa-link brand-icon"></i>
+                <span class="brand-title">Snip<span>Link</span></span>
+            </div>
+            <div class="nav-links">
+                <a href="/swagger-ui.html" target="_blank" class="nav-item">
+                    <i class="fa-solid fa-code"></i> API Docs (Swagger)
+                </a>
+                <span class="status-pill">
+                    <span class="pulse-dot"></span> System Live
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <!-- Hero Section -->
+        <header class="hero">
+            <h1 class="hero-title">Shorten, Share & Track <br><span class="gradient-text">Every Click in Real-Time</span></h1>
+            <p class="hero-subtitle">High-performance URL shortener built with Spring Boot, MySQL & deep clickstream analytics.</p>
+        </header>
+
+        <!-- URL Shortener Card -->
+        <section class="shortener-card">
+            <form id="shortenForm">
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-globe input-icon"></i>
+                    <input type="url" id="originalUrl" placeholder="Paste your long URL here (e.g. https://example.com/very/long/path)..." required>
+                    <button type="submit" id="shortenBtn" class="btn-primary">
+                        <span>Shorten Link</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+
+                <!-- Advanced Options Toggle -->
+                <div class="advanced-toggle" id="advancedToggle">
+                    <i class="fa-solid fa-sliders"></i>
+                    <span>Customize options (custom alias, expiration)</span>
+                    <i class="fa-solid fa-chevron-down toggle-arrow"></i>
+                </div>
+
+                <!-- Advanced Options Panel -->
+                <div class="advanced-panel" id="advancedPanel">
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label for="customAlias"><i class="fa-solid fa-tag"></i> Custom Alias (Optional)</label>
+                            <input type="text" id="customAlias" placeholder="e.g. summer-sale-2026" pattern="^[a-zA-Z0-9_-]{3,30}$">
+                            <small>3-30 letters, numbers, hyphens or underscores</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="expirationDays"><i class="fa-solid fa-calendar-xmark"></i> Expiration (Days)</label>
+                            <input type="number" id="expirationDays" placeholder="e.g. 7, 30 (Leave empty for never)" min="1" max="365">
+                            <small>URL automatically deactivates after expiration</small>
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Result Card (Hidden by default) -->
+            <div id="resultBox" class="result-box hidden">
+                <div class="result-header">
+                    <span class="success-badge"><i class="fa-solid fa-circle-check"></i> Link Shortened!</span>
+                    <span class="result-date" id="resultExpires"></span>
+                </div>
+                <div class="result-body">
+                    <div class="result-links">
+                        <div class="result-url-row">
+                            <span class="url-label">Short Link:</span>
+                            <a id="shortUrlDisplay" href="#" target="_blank" class="short-url-link"></a>
+                            <button class="btn-icon" id="copyBtn" title="Copy to clipboard">
+                                <i class="fa-regular fa-copy"></i>
+                            </button>
+                        </div>
+                        <div class="result-url-row">
+                            <span class="url-label">Original:</span>
+                            <span id="originalUrlDisplay" class="original-url-display"></span>
+                        </div>
+                    </div>
+                    <div class="qr-thumbnail-box">
+                        <img id="qrThumbnail" src="" alt="QR Code">
+                        <a id="downloadQrBtn" href="#" download="qrcode.png" class="btn-secondary btn-sm">
+                            <i class="fa-solid fa-download"></i> QR Code
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats Overview Cards -->
+        <section class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon purple"><i class="fa-solid fa-link"></i></div>
+                <div class="stat-details">
+                    <span class="stat-label">Total Links</span>
+                    <h3 id="statTotalUrls" class="stat-value">0</h3>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon blue"><i class="fa-solid fa-chart-line"></i></div>
+                <div class="stat-details">
+                    <span class="stat-label">Total Clicks</span>
+                    <h3 id="statTotalClicks" class="stat-value">0</h3>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon green"><i class="fa-solid fa-bolt"></i></div>
+                <div class="stat-details">
+                    <span class="stat-label">Active Links</span>
+                    <h3 id="statActiveUrls" class="stat-value">0</h3>
+                </div>
+            </div>
+        </section>
+
+        <!-- Recent Links Section -->
+        <section class="table-section">
+            <div class="section-header">
+                <div>
+                    <h2><i class="fa-solid fa-list-check"></i> Recent Short Links</h2>
+                    <p class="section-desc">Manage your shortened URLs, view click counters, and inspect clickstream data</p>
+                </div>
+                <button id="refreshBtn" class="btn-secondary btn-sm">
+                    <i class="fa-solid fa-arrows-rotate"></i> Refresh
+                </button>
+            </div>
+
+            <div class="table-container">
+                <table class="url-table">
+                    <thead>
+                        <tr>
+                            <th>Short Code</th>
+                            <th>Original Destination</th>
+                            <th>Clicks</th>
+                            <th>Created</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="urlTableBody">
+                        <tr>
+                            <td colspan="6" class="text-center loading-text">
+                                <i class="fa-solid fa-spinner fa-spin"></i> Loading links...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- Analytics Modal -->
+    <div id="analyticsModal" class="modal hidden">
+        <div class="modal-overlay" id="modalOverlay"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h3 id="modalTitle">Link Analytics</h3>
+                    <p id="modalSubtitle" class="modal-sub"></p>
+                </div>
+                <button class="btn-close" id="closeModalBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Top summary bar -->
+                <div class="modal-stats-bar">
+                    <div class="mini-stat">
+                        <span>Total Clicks</span>
+                        <strong id="modalTotalClicks">0</strong>
+                    </div>
+                    <div class="mini-stat">
+                        <span>Short Code</span>
+                        <code id="modalShortCode">---</code>
+                    </div>
+                    <div class="mini-stat">
+                        <span>Destination</span>
+                        <a id="modalDestinationLink" href="#" target="_blank" class="truncate-link">---</a>
+                    </div>
+                </div>
+
+                <!-- Charts grid -->
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h4><i class="fa-solid fa-chart-area"></i> Clicks Over Time</h4>
+                        <div class="chart-wrapper">
+                            <canvas id="timelineChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h4><i class="fa-solid fa-mobile-screen"></i> Device Breakdown</h4>
+                        <div class="chart-wrapper">
+                            <canvas id="deviceChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h4><i class="fa-solid fa-compass"></i> Browsers</h4>
+                        <div class="chart-wrapper">
+                            <canvas id="browserChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h4><i class="fa-solid fa-arrow-up-right-from-square"></i> Top Referrers</h4>
+                        <ul id="refererList" class="referrer-list"></ul>
+                    </div>
+                </div>
+
+                <!-- Recent clicks log table -->
+                <div class="modal-recent-clicks">
+                    <h4><i class="fa-solid fa-clock-rotate-left"></i> Recent Visitor Logs</h4>
+                    <div class="table-container mini-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>IP Address</th>
+                                    <th>Browser</th>
+                                    <th>OS</th>
+                                    <th>Device</th>
+                                    <th>Referrer</th>
+                                </tr>
+                            </thead>
+                            <tbody id="modalClicksBody">
+                                <tr><td colspan="6" class="text-center">No clicks recorded yet.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast hidden"></div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
+
